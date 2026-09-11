@@ -35,10 +35,10 @@ final class MacExcelRunner {
             progress.accept(new ProgressUpdate(18, "Spouštím Excel..."));
             execute(directory, "convert", CONVERT, List.of(source.toString(), converted.toString()));
             progress.accept(new ProgressUpdate(40, "Připravuji kola a nastavení stránek..."));
-            XlsxPrintLayout.Selection selection = XlsxPrintLayout.prepare(converted, prepared, league);
+            XlsxPrintLayout.prepareForMac(converted, prepared, league);
             progress.accept(new ProgressUpdate(75, makePdf ? "Vytvářím PDF..." : "Odesílám na tiskárnu..."));
             execute(directory, "export", EXPORT, List.of(prepared.toString(), pdf.toString(),
-                    makePdf ? "pdf" : "print", selection.scheduleName(), Integer.toString(selection.rounds().size())));
+                    makePdf ? "pdf" : "print"));
             if (makePdf) {
                 if (!Files.isRegularFile(pdf) || Files.size(pdf) == 0) {
                     throw new IOException("Excel nevytvořil PDF.");
@@ -80,6 +80,12 @@ final class MacExcelRunner {
                 throw new IOException("Povol ovládání Microsoft Excelu v Nastavení systému → Soukromí a zabezpečení → "
                         + "Automatizace pro aplikaci, ze které program spouštíš (např. IntelliJ IDEA).");
             }
+            if (message.contains("(-609)")) {
+                throw new IOException("Spojení s Microsoft Excelem bylo přerušeno. "
+                        + "Zkontroluj, zda Excel běží a nezobrazuje dialog, a zkus akci znovu. "
+                        + "Před opakováním tisku zkontroluj tiskovou frontu, aby se zápisy nevytiskly dvakrát. "
+                        + "Podrobnosti: " + message);
+            }
             throw new IOException("Zpracování v Excelu na macOS selhalo: " + message);
         }
     }
@@ -111,8 +117,11 @@ final class MacExcelRunner {
                         close wb saving no
                       end try
                     end if
-                    set display alerts to previousAlerts
-                    set automation security to previousSecurity
+                    -- Cleanup must not replace the original error if Excel disconnected.
+                    try
+                      set display alerts to previousAlerts
+                      set automation security to previousSecurity
+                    end try
                     error (stage & ": " & msg) number n
                   end try
                 end tell
@@ -141,31 +150,8 @@ final class MacExcelRunner {
                         delay 1
                       end try
                     end repeat
-                    set stage to "Nastavení stránek"
-                    repeat with sheetIndex from 1 to ((item 5 of argv) as integer)
-                      set ws to worksheet sheetIndex of wb
-                      set stage to "Nastavení listu " & (name of ws)
-                      set areaText to print area of page setup object of ws
-                      set areaWidth to width of range areaText of ws
-                      set areaHeight to height of range areaText of ws
-                      set pageScale to 95
-                      -- Font metrics differ on macOS. Keep 95% unless the form would spill onto another page.
-                      -- Printable A4 size in points after two 0.64 cm margins, rounded down.
-                      set widthScale to round (558.7 * 100 / areaWidth) rounding down
-                      set heightScale to round (805.6 * 100 / areaHeight) rounding down
-                      if widthScale < pageScale then set pageScale to widthScale
-                      if heightScale < pageScale then set pageScale to heightScale
-                      tell page setup object of ws
-                        set page orientation to portrait
-                        set zoom to pageScale
-                      end tell
-                    end repeat
-                    tell page setup object of worksheet (item 4 of argv) of wb
-                      set page orientation to landscape
-                      set zoom to false
-                      set fit to pages wide to 1
-                      set fit to pages tall to 1
-                    end tell
+                    -- All print settings are already stored in the prepared XLSX.
+                    -- Avoid page setup Apple events: Excel can lose the connection (-609).
                     if item 3 of argv is "pdf" then
                       set stage to "Ukládání výstupu"
                       save workbook as wb filename (item 2 of argv) file format PDF file format
@@ -184,8 +170,11 @@ final class MacExcelRunner {
                         close wb saving no
                       end try
                     end if
-                    set display alerts to previousAlerts
-                    set automation security to previousSecurity
+                    -- Cleanup must not replace the original error if Excel disconnected.
+                    try
+                      set display alerts to previousAlerts
+                      set automation security to previousSecurity
+                    end try
                     error (stage & ": " & msg) number n
                   end try
                 end tell

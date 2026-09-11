@@ -39,6 +39,14 @@ final class XlsxPrintLayout {
     private XlsxPrintLayout() { }
 
     static Selection prepare(Path source, Path destination, LeagueKind league) throws IOException {
+        return prepare(source, destination, league, false);
+    }
+
+    static Selection prepareForMac(Path source, Path destination, LeagueKind league) throws IOException {
+        return prepare(source, destination, league, true);
+    }
+
+    private static Selection prepare(Path source, Path destination, LeagueKind league, boolean fitRounds) throws IOException {
         try {
             Map<String, byte[]> entries = new LinkedHashMap<>();
             try (ZipFile zip = new ZipFile(source.toFile())) {
@@ -144,7 +152,7 @@ final class XlsxPrintLayout {
                 printArea.setAttribute("localSheetId", Integer.toString(index));
                 printArea.setTextContent("'" + sheet.name().replace("'", "''") + "'!" + area);
                 definedNames.appendChild(printArea);
-                configure(sheet.xml(), isSchedule);
+                configure(sheet.xml(), isSchedule, fitRounds);
             }
             for (Sheet sheet : sheets) entries.put(sheet.path(), serialize(sheet.xml()));
             entries.put("xl/workbook.xml", serialize(workbook));
@@ -163,10 +171,11 @@ final class XlsxPrintLayout {
         }
     }
 
-    private static void configure(Document document, boolean schedule) {
+    private static void configure(Document document, boolean schedule, boolean fitRounds) {
+        boolean fitToPage = schedule || fitRounds;
         Element root = document.getDocumentElement();
         Element properties = child(root, "sheetPr", List.of("dimension", "sheetViews", "sheetFormatPr", "cols", "sheetData"));
-        child(properties, "pageSetUpPr", List.of()).setAttribute("fitToPage", schedule ? "1" : "0");
+        child(properties, "pageSetUpPr", List.of()).setAttribute("fitToPage", fitToPage ? "1" : "0");
         List<String> afterPrint = List.of("pageMargins", "pageSetup", "headerFooter", "rowBreaks", "colBreaks", "customProperties", "cellWatches", "ignoredErrors", "smartTags", "drawing", "legacyDrawing", "legacyDrawingHF", "picture", "oleObjects", "controls", "webPublishItems", "tableParts", "extLst");
         Element options = child(root, "printOptions", afterPrint);
         options.setAttribute("horizontalCentered", "1");
@@ -181,8 +190,8 @@ final class XlsxPrintLayout {
         setup.setAttribute("paperSize", "9");
         setup.setAttribute("orientation", schedule ? "landscape" : "portrait");
         setup.setAttribute("scale", schedule ? "100" : "95");
-        setup.setAttribute("fitToWidth", schedule ? "1" : "0");
-        setup.setAttribute("fitToHeight", schedule ? "1" : "0");
+        setup.setAttribute("fitToWidth", fitToPage ? "1" : "0");
+        setup.setAttribute("fitToHeight", fitToPage ? "1" : "0");
         setup.setAttribute("usePrinterDefaults", "0");
         // Discard printer-specific settings that could override the portable A4 setup.
         setup.removeAttributeNS(REL, "id");

@@ -48,6 +48,21 @@ public final class XlsxPrintLayoutTest {
                 check(occurrences(schedule, "Team A - Team B") == 4, "Copies retain cached formula values");
                 check(!schedule.contains("<f>"), "Print copies must not shift formulas");
                 check(occurrences(schedule, "<mergeCell ") == 4, "Merged headings retained");
+                Path macOutput = directory.resolve("mac-output.xlsx");
+                var macSelection = XlsxPrintLayout.prepareForMac(source, macOutput, league);
+                check(macSelection.equals(selected), "Mac selects the same rounds and schedule");
+                check(java.util.Arrays.equals(original, Files.readAllBytes(source)), "Mac source unchanged");
+                for (int sheetId = 2; sheetId <= count + 1; sheetId++) {
+                    String macRound = read(macOutput, "xl/worksheets/sheet" + sheetId + ".xml");
+                    check(macRound.contains("fitToPage=\"1\"") && macRound.contains("fitToWidth=\"1\"")
+                            && macRound.contains("fitToHeight=\"1\""), "Mac round fits one page without Excel page setup calls");
+                    check(macRound.contains("paperSize=\"9\"") && macRound.contains("orientation=\"portrait\""), "Mac portrait A4");
+                }
+                String macSchedule = read(macOutput, "xl/worksheets/sheet" + (count + 2) + ".xml");
+                check(macSchedule.contains("orientation=\"landscape\"") && macSchedule.contains("fitToPage=\"1\""), "Mac schedule landscape");
+                check(occurrences(macSchedule, "Schedule title") == 4, "Mac retains four schedule copies");
+                check(read(macOutput, "xl/workbook.xml").contains(area), "Mac preserves round print area");
+                check(read(macOutput, "xl/worksheets/sheet" + (count + 1) + ".xml").contains("<f>data!A3</f><v>1</v>"), "Mac preserves formula and cache");
                 for (int copies = 1; copies <= 4; copies++) {
                     fixture(source, league, false, copies);
                     XlsxPrintLayout.prepare(source, output, league);

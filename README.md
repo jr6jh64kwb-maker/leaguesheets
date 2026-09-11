@@ -55,7 +55,7 @@ Maven si při prvním otevření může stáhnout JavaFX knihovny. Pro spuštěn
 - zápisy A4 na výšku, 95 %, centrované na stránce
 - rozpis A4 na šířku, přizpůsobený na jednu stránku
 
-Na macOS se měřítko zápisu v případě potřeby sníží pod 95 %, aby se kvůli odlišným metrikám písem vešel na jednu A4. Výběr kol, tiskové oblasti a počty kopií rozpisu jsou na obou systémech stejné.
+Na macOS se zápis přizpůsobí jedné A4 na výšku přímo nastavením v pracovní kopii XLSX. Excel už nemusí znovu nastavovat stránky přes AppleScript. Výběr kol, tiskové oblasti a počty kopií rozpisu jsou na obou systémech stejné.
 
 ## Kontrola tiskové logiky
 

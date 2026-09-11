@@ -45,7 +45,8 @@ args = [tool('jpackage'), '--type', 'app-image', '--dest', image_dir,
 if SYSTEM == 'Windows':
     args += ['--icon', ROOT / 'src/main/resources/cz/leaguesheets/bowling-icon.ico']
 else:
-    args += ['--mac-package-identifier', 'cz.leaguesheets.app']
+    args += ['--mac-package-identifier', 'cz.leaguesheets.app',
+             '--icon', ROOT / 'src/main/resources/cz/leaguesheets/bowling-icon.icns']
 run(*args)
 app = image_dir / ('LeagueSheets.app' if SYSTEM == 'Darwin' else 'LeagueSheets')
 if SYSTEM == 'Darwin':
