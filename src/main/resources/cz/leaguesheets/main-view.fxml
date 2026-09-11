@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane styleClass="root-pane" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cz.leaguesheets.MainController">
+    <top>
+        <MenuBar>
+            <menus>
+                <Menu mnemonicParsing="false" text="O aplikaci">
+                    <items>
+                        <MenuItem mnemonicParsing="false" onAction="#showHelp" text="Zobrazit informace" />
+                    </items>
+                </Menu>
+            </menus>
+        </MenuBar>
+    </top>
+
+    <center>
+        <VBox spacing="10" styleClass="root-panel">
+            <padding>
+                <Insets bottom="24" left="34" right="34" top="28" />
+            </padding>
+
+            <HBox alignment="CENTER_LEFT" spacing="16">
+                <Label styleClass="title" text="Příprava ligových zápisů" HBox.hgrow="ALWAYS" />
+            </HBox>
+
+            <Label styleClass="section-title" text="1  Liga" />
+            <Label styleClass="hint" text="Podle toho se vyberou správná kola a rozsah tisku." />
+            <ComboBox fx:id="leagueBox" prefWidth="220" />
+
+            <Label styleClass="section-title" text="2  Výstup">
+                <VBox.margin>
+                    <Insets top="16" />
+                </VBox.margin>
+            </Label>
+            <HBox spacing="18">
+                <RadioButton fx:id="pdfButton" text="PDF" />
+                <RadioButton fx:id="printButton" text="Tisk" />
+            </HBox>
+            <CheckBox fx:id="openPdfBox" text="Po vytvoření otevřít PDF" />
+
+            <Label styleClass="section-title" text="3  Soubor">
+                <VBox.margin>
+                    <Insets top="18" />
+                </VBox.margin>
+            </Label>
+            <Label styleClass="hint" text="Vybereš Excel soubor a zbytek proběhne automaticky." />
+            <Button fx:id="runButton" onAction="#chooseFileAndRun" styleClass="primary-button" text="Vybrat Excel" />
+
+            <ProgressBar fx:id="progressBar" prefHeight="18.0" prefWidth="283.0">
+                <VBox.margin>
+                    <Insets top="18" />
+                </VBox.margin>
+            </ProgressBar>
+            <Label fx:id="statusLabel" styleClass="status" />
+        </VBox>
+    </center>
+</BorderPane>
