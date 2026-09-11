@@ -2,6 +2,24 @@
 
 JavaFX verze aplikace pro přípravu ligových zápisů. UI je uložené ve FXML, takže ho můžeš otevřít ve Scene Builderu.
 
+## Stažení a instalace
+
+Hotovou aplikaci najdete v [nejnovějším vydání na GitHubu](https://github.com/jr6jh64kwb-maker/leaguesheets/releases/latest), v části **Assets**:
+
+- Windows: soubor `Windows-x64.exe` (instalační průvodce).
+- Mac s M1 nebo novějším: soubor `macOS-arm64.dmg`.
+- Mac s Intelem: soubor `macOS-x64.dmg`.
+
+Na Macu otevřete DMG a přetáhněte LeagueSheets do Applications. Instalátory obsahují Javu i JavaFX. Pro tisk a PDF je potřeba Microsoft Excel.
+
+Aplikace není podepsaná vývojářským certifikátem ani notarizovaná. Pokud ji macOS zablokuje, potvrďte otevření v Nastavení systému → Soukromí a zabezpečení → Přesto otevřít. Ve Windows může být potřeba Další informace → Přesto spustit. Používejte pouze soubory z tohoto repozitáře.
+
+## Sestavení instalátorů
+
+GitHub Actions při odeslání tagu `v` odpovídajícího verzi v `pom.xml` sestaví Windows a obě varianty macOS, spustí regresní kontroly a zkusí spuštění zabalené aplikace. Až uspějí všechny tři sestavení, zveřejní instalátory v Releases.
+
+Lokálně spusťte `python3 scripts/package.py` (Windows: `python scripts/package.py`). Potřebujete JDK 21, Maven a Python 3; Windows navíc WiX 3. Instalátor se sestavuje na cílovém systému a objeví se v `target/installers`. Proměnná `MAVEN` může určit cestu k Mavenu.
+
 ## Otevření v IntelliJ
 
 1. Otevři IntelliJ IDEA.
@@ -19,7 +37,7 @@ V IntelliJ můžeš na FXML kliknout pravým tlačítkem a zvolit `Open in Scene
 
 ## Důležité
 
-Tisk a export PDF vyžadují nainstalovaný Microsoft Excel a Javu 21 nebo novější.
+Tisk a export PDF vyžadují nainstalovaný Microsoft Excel. Při spuštění ze zdrojového kódu je potřeba Java 21 nebo novější; instalátory ji již obsahují.
 
 - Windows používá Windows PowerShell a COM automatizaci Excelu.
 - macOS používá systémový AppleScript a Excel pro Mac. Při prvním spuštění povol ovládání Excelu aplikaci, ze které program spouštíš (např. IntelliJ IDEA). Oprávnění najdeš v Nastavení systému → Soukromí a zabezpečení → Automatizace.

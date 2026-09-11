@@ -1,0 +1,115 @@
+name: Build installers and release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            name: Windows-x64
+          - os: macos-15
+            name: macOS-arm64
+          - os: macos-15-intel
+            name: macOS-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Add WiX to PATH
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not $env:WIX) { throw 'WiX 3 is required to build the Windows installer' }
+          "$env:WIX\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Check release version
+        shell: bash
+        run: |
+          version=$(python -c "import xml.etree.ElementTree as E; print(E.parse('pom.xml').find('{http://maven.apache.org/POM/4.0.0}version').text)")
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "v$version" ]]; then exit 1; fi
+      - name: Build and smoke-test installer
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/package.py 2>&1 | tee build.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.name }}
+          path: target/installers/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-${{ matrix.name }}
+          path: |
+            build.log
+            target/launcher-smoke.log
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          pattern: installer-*
+          merge-multiple: true
+      - name: Publish installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd installers
+          sha256sum *.exe *.dmg > SHA256SUMS.txt
+          cd ..
+          gh release create "$GITHUB_REF_NAME" installers/* --verify-tag --title "LeagueSheets $GITHUB_REF_NAME" --notes-file packaging/release-notes.md
+
+  report:
+    if: always()
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: logs-*
+          path: build-logs
+      - name: Save build outcome in Git notes
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+        run: |
+          {
+            echo "Build: $BUILD_RESULT"
+            echo "Release: $RELEASE_RESULT"
+            echo "https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            if [ -d build-logs ]; then
+              find build-logs -type f -exec sh -c 'echo "$1"; tail -60 "$1"' sh {} \;
+            fi
+          } > build-result.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin refs/notes/installer-builds:refs/notes/installer-builds || true
+          git notes --ref=installer-builds add -f -F build-result.txt "$GITHUB_SHA"
+          git push origin refs/notes/installer-builds
